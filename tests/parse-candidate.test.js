@@ -54,3 +54,27 @@ ${cities}`);
     1,
   );
 });
+
+test("recovers clockwise, unclosed, and self-crossing outlines with diagnostics", async () => {
+  const { readSubmission, evaluateOutline } =
+    await import("../src/evaluate-candidate.js");
+  const reference = parseCandidate("M 100,-30 101,-30 101,-31 100,-31 Z");
+  const clockwise = readSubmission("M 100,-30 100,-31 101,-31 101,-30");
+  const corrected = evaluateOutline(clockwise, reference);
+  assert.equal(corrected.score, 100);
+  assert.equal(corrected.originalValid, false);
+  assert.equal(corrected.valid, true);
+  assert.equal(clockwise.repairs.length, 2);
+  const crossed = evaluateOutline(
+    readSubmission("M 100,-30 101,-31 100,-31 101,-30 Z"),
+    reference,
+  );
+  assert.equal(crossed.valid, true);
+  assert.equal(crossed.originalValid, false);
+  assert.ok(crossed.score > 0 && crossed.score < 100);
+  const broken = readSubmission(
+    "OUTLINE\nM incomplete\nCITIES\n北京 北京 116.4,-39.9",
+  );
+  assert.equal(evaluateOutline(broken, reference).score, 0);
+  assert.equal(broken.features.cities.matched, 1);
+});

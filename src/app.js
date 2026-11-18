@@ -1,8 +1,7 @@
-import { featureReference, scoreFeatures } from "./score-features.js";
-import { parseCandidate } from "./parse-candidate.js";
+import { featureReference } from "./score-features.js";
+import { readSubmission, evaluateOutline } from "./evaluate-candidate.js";
 import "./styles.css";
 import { validateOutline } from "./geometry.js";
-import { scoreOutlines } from "./score.js";
 import { createMap, COLORS } from "./map.js";
 import { referenceOutline, referenceFingerprint } from "./reference-id.js";
 import { CONFIG } from "./config.js";
@@ -84,18 +83,35 @@ function escapeHTML(s) {
   );
 }
 function vertexStatus({ vertices, vertexLimit, overVertexLimit }) {
+  if (vertices === null) return "—";
   const status = overVertexLimit
     ? translate("Over limit", "超限")
     : translate("Within limit", "未超限");
   return `<span class="vertex-status${overVertexLimit ? " vertex-over" : ""}">${vertices} / ${vertexLimit} · ${status}</span>`;
 }
+const metric = (value, digits = 1, unit = " km") =>
+  value == null ? "—" : value.toFixed(digits) + unit;
+
+function diagnostics(model) {
+  const issues = [
+    model.result.originalError,
+    model.result.error !== model.result.originalError && model.result.error,
+    model.result.warning,
+    model.submission.featureError,
+    ...model.submission.repairs.map(([en, zh]) => translate(en, zh)),
+  ].filter(Boolean);
+  return issues.length
+    ? `<ul>${issues.map((issue) => `<li>${escapeHTML(issue)}</li>`).join("")}</ul>`
+    : "";
+}
+
 function render() {
   renderReference();
   models.sort((a, b) => b.result.score - a.result.score);
   $("#rows").innerHTML = models
     .map(
       (m, i) =>
-        `<tr data-id="${m.id}" tabindex="0"><td class="rank">${String(i + 1).padStart(2, "0")}</td><td><div class="model-cell"><span class="model-dot" style="background:${m.color}"></span><strong>${escapeHTML(m.name)}</strong></div></td><td><span class="score">${m.result.score.toFixed(2)}</span></td><td>${vertexStatus(m.result)}</td><td>${m.result.metrics.meanDistanceKm.toFixed(1)} km</td><td>${m.result.metrics.hd95Km.toFixed(1)} km</td><td>${(m.result.metrics.iou * 100).toFixed(1)}%</td><td><label><input class="toggle" type="checkbox" data-id="${m.id}" ${m.visible ? "checked" : ""} aria-label="${translate("Show", "显示")} ${escapeHTML(m.name)}"> ${translate("Show", "显示")}</label> &nbsp; <button class="remove button outline" data-id="${m.id}" aria-label="${translate("Remove", "移除")} ${escapeHTML(m.name)}">×</button></td></tr>`,
+        `<tr data-id="${m.id}" tabindex="0"><td class="rank">${String(i + 1).padStart(2, "0")}</td><td><div class="model-cell"><span class="model-dot" style="background:${m.color}"></span><strong>${escapeHTML(m.name)}</strong></div></td><td><span class="score">${m.result.score.toFixed(m.result.score > 0 && m.result.score < 0.01 ? 4 : 2)}</span></td><td>${vertexStatus(m.result)}${m.result.originalValid ? "" : `<br><small>${m.result.valid ? translate("Original invalid · repaired", "原轮廓无效 · 已修复") : translate("Invalid outline", "轮廓无效")}</small>`}</td><td>${metric(m.result.metrics?.meanDistanceKm)}</td><td>${metric(m.result.metrics?.hd95Km)}</td><td>${metric(m.result.metrics && m.result.metrics.iou * 100, 1, "%")}</td><td><label><input class="toggle" type="checkbox" data-id="${m.id}" ${m.visible ? "checked" : ""} aria-label="${translate("Show", "显示")} ${escapeHTML(m.name)}"> ${translate("Show", "显示")}</label> &nbsp; <button class="remove button outline" data-id="${m.id}" aria-label="${translate("Remove", "移除")} ${escapeHTML(m.name)}">×</button></td></tr>`,
     )
     .join("");
   $("#empty").hidden = !!models.length;
@@ -113,7 +129,7 @@ function render() {
   map.draw();
   const selected = models.find((m) => m.id === selectedId);
   $("#score-detail").innerHTML = selected
-    ? `<h3>${escapeHTML(selected.name)} · ${translate("Diagnostics", "详细指标")}</h3><p>${translate("Sampled maximum boundary error", "采样最大边界误差")}: <strong>${selected.result.metrics.maxDistanceKm.toFixed(1)} km</strong> · ${translate("Submitted vertices", "提交顶点数")}: ${vertexStatus(selected.result)} · ${translate("Topology", "拓扑")}: <strong>${translate("valid simple closed ring", "有效的不自交闭合轮廓")}</strong></p>${featureDetails(selected.features)}`
+    ? `<h3>${escapeHTML(selected.name)} · ${translate("Diagnostics", "详细指标")}</h3><p>${translate("Sampled maximum boundary error", "采样最大边界误差")}: <strong>${metric(selected.result.metrics?.maxDistanceKm)}</strong> · ${translate("Submitted vertices", "提交顶点数")}: ${vertexStatus(selected.result)} · ${translate("Topology", "拓扑")}: <strong>${selected.result.valid ? (selected.result.originalValid ? translate("valid simple closed ring", "有效的不自交闭合轮廓") : translate("original invalid · scored after repair", "原轮廓无效 · 已按修复结果评分")) : translate("invalid · 0 points", "无效 · 0 分")}</strong></p>${diagnostics(selected)}${featureDetails(selected.features)}`
     : `<h3>${translate("Selected model details", "所选模型详情")}</h3><p>${translate("Select a model row to inspect its diagnostics.", "选择表格中的模型查看详细指标。")}</p>`;
 }
 function featureDetails(features) {
@@ -190,7 +206,7 @@ function setReference(data, name = "") {
   check(data, true);
   const rescored = models.map((m) => ({
     ...m,
-    result: scoreOutlines(m.data, data),
+    result: evaluateOutline(m.submission, data),
   }));
   reference = data;
   referenceName = name;
@@ -203,7 +219,6 @@ $("#candidate-file").onchange = async (e) => {
   if (!file) return;
   try {
     const text = await file.text();
-    scoreFeatures(check(parseCandidate(text)));
     $("#candidate-json").value = text;
     $("#candidate-file-name").textContent = file.name;
     $("#error").textContent = "";
@@ -215,21 +230,29 @@ $("#candidate-file").onchange = async (e) => {
 };
 $("#add-model").onclick = () => {
   try {
-    let data = check(parseCandidate($("#candidate-json").value)),
-      name =
-        $("#model-name").value.trim() ||
-        `${translate("Model", "模型")} ${models.length + 1}`;
+    const input = $("#candidate-json").value.trim();
+    if (!input) return;
+    const submission = readSubmission(input);
+    const result = evaluateOutline(submission, reference);
+    const data =
+      submission.featureError && !submission.features
+        ? { ...submission.data, rivers: undefined, cities: undefined }
+        : submission.data;
+    const name =
+      $("#model-name").value.trim() ||
+      `${translate("Model", "模型")} ${models.length + 1}`;
     models.push({
       id: crypto.randomUUID(),
       name,
       data,
       color: COLORS[models.length % COLORS.length],
       visible: true,
-      result: scoreOutlines(data, reference),
-      features: scoreFeatures(data),
+      submission,
+      result,
+      features: submission.features,
     });
     selectedId = models.at(-1).id;
-    $("#error").textContent = "";
+    $("#error").textContent = result.error ?? submission.featureError ?? "";
     $("#candidate-json").value = "";
     $("#model-name").value = "";
     $("#candidate-file").value = "";
@@ -317,10 +340,12 @@ $("#export-json").onclick = async () => {
           geometry: reference,
           synthetic: reference === demo,
         },
-        results: models.map(({ name, data, result, features }) => ({
+        results: models.map(({ name, data, result, features, submission }) => ({
           name,
           input: data,
           ...result,
+          repairs: submission.repairs.map(([en, zh]) => translate(en, zh)),
+          featureError: submission.featureError,
           ...(features ? { features } : {}),
         })),
       },
@@ -333,7 +358,7 @@ $("#export-json").onclick = async () => {
 $("#export-csv").onclick = async () => {
   await updateFingerprint();
   const q = (x) => {
-    let v = String(x);
+    let v = String(x ?? "");
     if (/^[\s]*[=+@\-\t\r]/.test(v)) v = "'" + v;
     return '"' + v.replace(/"/g, '""') + '"';
   };
@@ -342,6 +367,13 @@ $("#export-csv").onclick = async () => {
       "rank",
       "model",
       "score",
+      "valid",
+      "original_valid",
+      "original_error",
+      "warning",
+      "error",
+      "repairs",
+      "feature_error",
       "vertices",
       "vertex_limit",
       "over_vertex_limit",
@@ -359,14 +391,21 @@ $("#export-csv").onclick = async () => {
       i + 1,
       m.name,
       m.result.score,
+      m.result.valid,
+      m.result.originalValid,
+      m.result.originalError,
+      m.result.warning,
+      m.result.error,
+      m.submission.repairs.map(([en, zh]) => translate(en, zh)).join(" "),
+      m.submission.featureError,
       m.result.vertices,
       m.result.vertexLimit,
       m.result.overVertexLimit,
-      m.result.metrics.meanDistanceKm,
-      m.result.metrics.hd95Km,
-      m.result.metrics.maxDistanceKm,
-      m.result.metrics.iou,
-      m.result.metrics.symmetricDifferenceKm2,
+      m.result.metrics?.meanDistanceKm,
+      m.result.metrics?.hd95Km,
+      m.result.metrics?.maxDistanceKm,
+      m.result.metrics?.iou,
+      m.result.metrics?.symmetricDifferenceKm2,
       activeReferenceName(),
       fingerprint,
       reference === demo,

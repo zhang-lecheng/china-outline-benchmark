@@ -119,6 +119,9 @@ export function createMap(
     if (featureReference)
       drawFeatures(featureReference, "#256489", "reference");
     for (const model of getModels().filter((item) => item.visible)) {
+      if (featureReference && mode === "overlay")
+        drawFeatures(model.data, model.color, "candidate");
+      if (!model.result.valid) continue;
       const predictedPath = path(model.data.points);
       if (mode === "difference" && referencePath) {
         grid.append(
@@ -141,8 +144,6 @@ export function createMap(
           "vector-effect": "non-scaling-stroke",
         }),
       );
-      if (featureReference && mode === "overlay")
-        drawFeatures(model.data, model.color, "candidate");
       if (mode === "boundary") {
         const { candidateErrors, referenceErrors } = model.result.geometry;
         drawErrors(model, candidateErrors, "Prediction");

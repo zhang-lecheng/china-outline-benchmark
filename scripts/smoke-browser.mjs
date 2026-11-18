@@ -102,6 +102,25 @@ try {
   await page.locator("#candidate-json").fill("{");
   await page.locator("#add-model").click();
   assert.match(await page.locator("#error").textContent(), /json/i);
+  assert.match(
+    await page.locator("#rows tr").first().textContent(),
+    /0\.00.*Invalid outline/,
+  );
+  await page.locator(".remove").click();
+  await page
+    .locator("#candidate-json")
+    .fill("M 100,-30 100,-31 101,-31 101,-30");
+  await page.locator("#add-model").click();
+  assert.match(
+    await page.locator("#score-detail").textContent(),
+    /scored after repair/,
+  );
+  assert.match(
+    await page.locator("#score-detail").textContent(),
+    /Reversed clockwise winding/,
+  );
+  await page.locator(".remove").click();
+
   await page.locator("#model-name").fill("Shifted");
   await page
     .locator("#candidate-file")

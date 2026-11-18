@@ -41,3 +41,7 @@ Use `npm test` and `node examples/perturbation-report.js` to reproduce the autom
 ## Rivers and cities
 
 The four-section submission adds optional diagnostics. The outline keeps its original formula. River errors compare the open source-to-mouth centerlines. We report the symmetric mean, HD95 and errors at the two ordered endpoints, in kilometers. Each direction contributes 2,048 equally spaced samples by spherical arc length. City diagnostics match by administrative region and expected city name, then report great-circle distance and coverage. Missing and wrong-city rows are excluded from the mean and listed separately. JSON exports include the feature reference version and city-level details.
+
+## Recovering submissions
+
+The evaluator records the original validation failure separately from the score. It removes Markdown wrapping, adds an omitted closing instruction, removes consecutive duplicate vertices and reverses clockwise rings as needed. If an outline still fails, it attempts to polygonize the submitted coordinates using their winding and scores the largest exterior by planar area, ignoring holes and any smaller components. Repairs never fit the submission to the reference. An unrecoverable outline is labeled invalid and scores 0. Usable river and city sections are scored independently of outline validity.

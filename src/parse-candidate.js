@@ -1,11 +1,11 @@
 /** Read legacy outline JSON or a single absolute SVG-style linear geographic path. */
-export function parseCandidate(text) {
+export function parseCandidate(text, diagnostics) {
   const input = text.trim();
   if (!input || input.startsWith("{") || input.startsWith("[")) {
     return JSON.parse(input);
   }
   const sections = input.split(/^(OUTLINE|YANGTZE|YELLOW|CITIES)[ \t]*$/gmu);
-  if (sections.length === 1) return outline(readPath(input, true));
+  if (sections.length === 1) return outline(readOutline(input, diagnostics));
   const blocks = new Map();
   if (sections[0].trim()) throw new Error("Start the submission with OUTLINE.");
   for (let i = 1; i < sections.length; i += 2) {
@@ -13,27 +13,48 @@ export function parseCandidate(text) {
       throw new Error("Repeated section: " + sections[i]);
     blocks.set(sections[i], sections[i + 1].trim());
   }
-  const data = outline(readPath(blocks.get("OUTLINE") ?? "", true));
+  let data;
+  try {
+    data = outline(readOutline(blocks.get("OUTLINE") ?? "", diagnostics));
+  } catch (error) {
+    if (!diagnostics) throw error;
+    diagnostics.outlineError = error.message;
+    data = {};
+  }
   data.rivers = {};
   for (const key of ["YANGTZE", "YELLOW"]) {
-    if (blocks.has(key)) data.rivers[key] = readPath(blocks.get(key), false);
+    if (!blocks.has(key)) continue;
+    try {
+      data.rivers[key] = readPath(blocks.get(key), false);
+    } catch (error) {
+      if (!diagnostics) throw error;
+      diagnostics.featureIssues.push(key + ": " + error.message);
+    }
   }
   if (blocks.has("CITIES")) {
-    data.cities = blocks
+    const cities = blocks
       .get("CITIES")
       .split(/\r?\n/u)
+      .filter((line) => line.trim())
       .map((line) => {
-        const fields = line.trim().split(/\s+/u);
-        if (fields.length < 3)
-          throw new Error(
-            "Write each city as region city longitude,negative-latitude.",
-          );
-        return {
-          region: fields[0],
-          city: fields.slice(1, -1).join(" "),
-          point: readPoint(fields.at(-1)),
-        };
+        try {
+          const fields = line.trim().split(/\s+/u);
+          if (fields.length < 3)
+            throw new Error(
+              "Write each city as region city longitude,negative-latitude.",
+            );
+          return {
+            region: fields[0],
+            city: fields.slice(1, -1).join(" "),
+            point: readPoint(fields.at(-1)),
+          };
+        } catch (error) {
+          if (!diagnostics) throw error;
+          diagnostics.featureIssues.push("CITIES: " + error.message);
+          return null;
+        }
       });
+    data.cities = cities.filter(Boolean);
   }
   return data;
 }
@@ -67,11 +88,27 @@ function readPath(input, closed) {
   return points;
 }
 
+function readOutline(input, diagnostics) {
+  if (diagnostics && /^M[\s\S]+\d$/u.test(input)) {
+    const points = readPath(input, false);
+    diagnostics.missingClosure = true;
+    diagnostics.repairs.push([
+      "Added the missing Z closure.",
+      "已补上缺失的 Z 闭合指令。",
+    ]);
+    return points;
+  }
+  return readPath(input, true);
+}
+
 function outline(points) {
   return {
     crs: "EPSG:4326",
     region: "mainland_china",
     orientation: "CCW",
-    points: [...points, points[0]],
+    points:
+      points.at(-1)[0] === points[0][0] && points.at(-1)[1] === points[0][1]
+        ? points
+        : [...points, points[0]],
   };
 }

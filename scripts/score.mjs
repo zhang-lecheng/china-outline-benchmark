@@ -1,18 +1,15 @@
-import { scoreFeatures } from "../src/score-features.js";
-import { parseCandidate } from "../src/parse-candidate.js";
+import { readSubmission, evaluateOutline } from "../src/evaluate-candidate.js";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { parseArgs } from "node:util";
 import { referenceFingerprint, referenceOutline } from "../src/reference-id.js";
 import { CONFIG } from "../src/config.js";
 import { validateOutline } from "../src/geometry.js";
-import { scoreOutlines } from "../src/score.js";
 
 const help = `Usage: npm run score -- --reference FILE [--format json|csv] [--label NAME ...] PREDICTION [...]
 Specify one label per prediction or omit labels to use filenames. At least one rejected input exits with status 2 while still exporting every result.`;
 
-function featureMetrics(candidate, format) {
-  const result = scoreFeatures(candidate);
+function featureMetrics(result, format) {
   if (!result) return {};
   if (format === "json") return { features: result };
   return {
@@ -62,21 +59,21 @@ async function main() {
   for (const [index, path] of positionals.entries()) {
     const label = values.label?.[index] ?? basename(path, ".json");
     try {
-      const candidate = parseCandidate(await readFile(path, "utf8"));
-      const { score, metrics, vertices, vertexLimit, overVertexLimit } =
-        scoreOutlines(candidate, reference);
+      const submission = readSubmission(await readFile(path, "utf8"));
+      const { metrics, geometry, ...result } = evaluateOutline(
+        submission,
+        reference,
+      );
       results.push({
         label,
-        valid: true,
-        vertices,
-        vertexLimit,
-        overVertexLimit,
-        ...featureMetrics(candidate, values.format),
-        score,
+        ...result,
         ...metrics,
+        ...featureMetrics(submission.features, values.format),
+        repairs: submission.repairs.map(([en]) => en).join(" "),
+        featureError: submission.featureError,
       });
     } catch (error) {
-      results.push({ label, valid: false, error: error.message });
+      results.push({ label, valid: false, score: 0, error: error.message });
     }
   }
   results.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
