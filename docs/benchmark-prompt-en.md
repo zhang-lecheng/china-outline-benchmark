@@ -1,4 +1,4 @@
-From memory, trace mainland China’s contiguous outline, the Yangtze and Yellow rivers, and provincial-level administrative centers. Exclude Hainan and Taiwan. Omit provincial borders. Do not browse, read files or query map data.
+From memory, trace mainland China’s contiguous outline (using China’s official boundary convention), the Yangtze and Yellow rivers, and provincial-level administrative centers. Exclude Hainan and Taiwan. Omit provincial borders. Do not browse, read files or query map data.
 
 Write points as longitude,negative-latitude in decimal WGS84 degrees. Output only these four section headings and their data. Omit SVG tags, code fences and explanations.
 

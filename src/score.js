@@ -69,7 +69,11 @@ export function scoreOutlines(candidate, reference) {
       weights.hd95 * Math.exp(-hd95Km / hd95ScaleKm) +
       weights.iou * iou);
 
+  const vertices = candidate.points.length - 1;
   return {
+    vertices,
+    vertexLimit: CONFIG.promptVertexLimit,
+    overVertexLimit: vertices > CONFIG.promptVertexLimit,
     score: Math.max(0, Math.min(100, score)),
     metrics: {
       meanDistanceKm,

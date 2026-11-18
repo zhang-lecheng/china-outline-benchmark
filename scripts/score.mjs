@@ -63,11 +63,14 @@ async function main() {
     const label = values.label?.[index] ?? basename(path, ".json");
     try {
       const candidate = parseCandidate(await readFile(path, "utf8"));
-      const { score, metrics } = scoreOutlines(candidate, reference);
+      const { score, metrics, vertices, vertexLimit, overVertexLimit } =
+        scoreOutlines(candidate, reference);
       results.push({
         label,
         valid: true,
-        vertices: candidate.points.length - 1,
+        vertices,
+        vertexLimit,
+        overVertexLimit,
         ...featureMetrics(candidate, values.format),
         score,
         ...metrics,

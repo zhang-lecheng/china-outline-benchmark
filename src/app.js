@@ -22,7 +22,7 @@ app.innerHTML = `<div class="shell"><header class="topbar"><div class="brand"><s
 <div class="scope"><strong>${bilingual("Mainland China only", "仅中国大陆连续陆地")}</strong><p>${bilingual("The default map traces the contiguous mainland landmass. Taiwan, Hainan and other offshore islands are outside this benchmark’s map scope.", "默认地图仅绘制中国大陆连续陆地外轮廓，台湾岛、海南岛及其他离岛不在本评测地图范围内。")}</p></div>
 <div class="layout"><aside class="panel sidebar"><div><div class="section-head"><h2>${bilingual("Submit an outline", "提交轮廓")}</h2></div><p class="desc">${bilingual("Add a model’s reconstructed boundary to compare it against the active reference.", "提交模型重建的轮廓，与当前参考边界比较。")}</p><label class="field-label" for="model-name">${bilingual("Model name", "模型名称")}</label><input id="model-name" type="text" placeholder="e.g. Model A"><label class="field-label" for="candidate-file">${bilingual("Map submission", "地图作答")}</label><label class="upload">${bilingual("↑ &nbsp; Choose an outline file", "↑ &nbsp; 选择轮廓文件")}<input id="candidate-file" type="file" accept=".json,.txt,application/json,text/plain"></label><div id="candidate-file-name" class="file-name"></div><div class="or">${bilingual("— OR PASTE AN OUTLINE —", "或粘贴轮廓")}</div><textarea id="candidate-json" aria-label="Paste outline JSON" spellcheck="false" placeholder="M 100,-30 101,-30 101,-31 100,-31&#10;Z"></textarea><button class="button full" id="add-model">${bilingual("Evaluate &nbsp; →", "评分 &nbsp; →")}</button><div id="error" class="error" role="alert"></div><p class="small">${bilingual("Use longitude and negative latitude in SVG paths, or ordinary longitude and latitude in JSON. Submit one closed, counterclockwise ring.", "SVG 路径使用经度和负纬度，JSON 使用普通经纬度。提交一条逆时针、不自交的闭合轮廓。")}</p></div><div class="divider"></div><div><div class="section-head"><h2>${bilingual("Reference boundary", "参考边界")}</h2></div><div class="reference-status"><span class="dot"></span><div><strong id="ref-name">Approximate reference · Natural Earth</strong><span id="ref-desc">Natural Earth 1:10m Admin 0, China POV 5.1.1. Approximation; not an official 2023 PRC standard map.</span></div></div><label class="upload">${bilingual("↑ &nbsp; Load reference GeoJSON or JSON", "↑ &nbsp; 载入参考 GeoJSON 或 JSON")}<input id="reference-file" type="file" accept=".geojson,.json,application/geo+json,application/json"></label><button class="button secondary full" id="demo-button">${bilingual("Use fictional synthetic demo", "使用虚构轮廓演示")}</button><button class="button outline full" id="default-reference">${bilingual("Use Natural Earth reference", "使用 Natural Earth 参考边界")}</button><label class="small"><input type="checkbox" id="reference-visible" checked>${bilingual(" Show reference on map", " 在地图上显示参考边界")}</label><p class="small">${bilingual("Import a GeoJSON Polygon or use the outline JSON format. Keep the same reference for all compared models.", "导入 GeoJSON 多边形或使用轮廓 JSON 格式。比较模型时请使用同一参考边界。")}</p></div></aside>
 <main class="main"><section class="panel map-panel"><div class="map-top"><div><h2>${bilingual("Boundary comparison", "边界对比")}</h2><p>${bilingual("Drag to pan · Use controls to zoom · Hover for coordinates", "拖动平移，使用按钮缩放，悬停查看坐标")}</p></div><div class="tabs" id="view-mode" aria-label="Map display mode"><button data-mode="overlay" class="active">${bilingual("Overlay", "轮廓叠加")}</button><button data-mode="difference">${bilingual("Difference", "对称差")}</button><button data-mode="boundary">${bilingual("Boundary error", "边界误差")}</button></div><span class="tag" id="map-tag">APPROXIMATE REFERENCE</span></div><div class="map-wrap"><div class="map-controls"><button data-zoom="in" aria-label="Zoom in">+</button><button data-zoom="out" aria-label="Zoom out">−</button><button data-zoom="reset" aria-label="Reset map view">⌂</button></div></div><label class="feature-toggle"><input id="feature-overlay" type="checkbox"> ${bilingual("Show river and city references", "显示河流和城市参考")}</label><div class="map-foot"><div class="legend" id="legend"></div><div class="coords">${bilingual("MOVE OVER MAP FOR COORDINATES", "悬停查看经纬度")}</div></div></section>
-<div class="toolbar"><div><h2>${bilingual("Model comparison", "模型对比")}</h2><p>${bilingual("Sorted by overall score · Higher is better", "按综合分从高到低排序")}</p></div><div class="actions"><button class="button outline" id="export-csv">${bilingual("↓ &nbsp; Export CSV", "↓ &nbsp; 导出 CSV")}</button><button class="button outline" id="export-json">${bilingual("↓ &nbsp; Export JSON", "↓ &nbsp; 导出 JSON")}</button></div></div><section class="panel results"><table><thead><tr><th>${bilingual("Rank", "名次")}</th><th>${bilingual("Model / overlay", "模型／叠加")}</th><th>${bilingual("Score / 100", "得分／100")}</th><th>${bilingual("Mean error", "平均误差")}</th><th>${bilingual("95th % error", "95% 分位误差")}</th><th>${bilingual("Area IoU", "面积 IoU")}</th><th></th></tr></thead><tbody id="rows"></tbody></table><div class="empty" id="empty">${bilingual("No outlines yet. Add a model to start comparing.", "尚未提交轮廓。添加模型后即可比较。")}</div></section>
+<div class="toolbar"><div><h2>${bilingual("Model comparison", "模型对比")}</h2><p>${bilingual("Sorted by overall score · Higher is better", "按综合分从高到低排序")}</p></div><div class="actions"><button class="button outline" id="export-csv">${bilingual("↓ &nbsp; Export CSV", "↓ &nbsp; 导出 CSV")}</button><button class="button outline" id="export-json">${bilingual("↓ &nbsp; Export JSON", "↓ &nbsp; 导出 JSON")}</button></div></div><section class="panel results"><table><thead><tr><th>${bilingual("Rank", "名次")}</th><th>${bilingual("Model / overlay", "模型／叠加")}</th><th>${bilingual("Score / 100", "得分／100")}</th><th>${bilingual("Outline points", "轮廓点数")}</th><th>${bilingual("Mean error", "平均误差")}</th><th>${bilingual("95th % error", "95% 分位误差")}</th><th>${bilingual("Area IoU", "面积 IoU")}</th><th></th></tr></thead><tbody id="rows"></tbody></table><div class="empty" id="empty">${bilingual("No outlines yet. Add a model to start comparing.", "尚未提交轮廓。添加模型后即可比较。")}</div></section>
 <section class="panel score-detail" id="score-detail"><h3>${bilingual("Selected model details", "所选模型详情")}</h3><p>${bilingual("Select a model row to inspect its diagnostics.", "选择表格中的模型查看详细指标。")}</p></section><div class="method"><article class="panel"><h3>${bilingual("Reading the map", "如何看图")}</h3><p>${bilingual("Difference shades the symmetric difference between each visible outline and the reference. Boundary error shows the largest sampled distances along both outlines. Hover over a marker for its distance. Multiple visible differences may overlap.", "对称差模式标出模型轮廓与参考轮廓各自独有的区域。边界误差模式标出双向采样中的局部高误差点。悬停可查看距离。多个模型的对称差可能重叠。")}</p></article><article class="panel"><h3>${bilingual("About the score", "评分说明")}</h3><p>${bilingual("Compares absolute geographic position and shape using symmetric boundary distances and area intersection over union. No alignment or fitting is applied. Scores are meaningful only for the same reference.", "按原始地理坐标比较位置和形状，使用双向边界距离与面积交并比。评分直接使用提交轮廓，不进行对齐或拟合。请仅比较基于同一参考边界的分数。")}</p></article></div></main></div>
 <section class="panel prompt-panel" aria-labelledby="prompt-title">
   <div class="prompt-top"><h2 id="prompt-title">${bilingual("Benchmark prompt", "评测提示词")}</h2><button id="copy-prompt" type="button" class="button">${bilingual("Copy prompt", "复制提示词")}</button></div>
@@ -83,13 +83,19 @@ function escapeHTML(s) {
       ],
   );
 }
+function vertexStatus({ vertices, vertexLimit, overVertexLimit }) {
+  const status = overVertexLimit
+    ? translate("Over limit", "超限")
+    : translate("Within limit", "未超限");
+  return `<span class="vertex-status${overVertexLimit ? " vertex-over" : ""}">${vertices} / ${vertexLimit} · ${status}</span>`;
+}
 function render() {
   renderReference();
   models.sort((a, b) => b.result.score - a.result.score);
   $("#rows").innerHTML = models
     .map(
       (m, i) =>
-        `<tr data-id="${m.id}" tabindex="0"><td class="rank">${String(i + 1).padStart(2, "0")}</td><td><div class="model-cell"><span class="model-dot" style="background:${m.color}"></span><strong>${escapeHTML(m.name)}</strong></div></td><td><span class="score">${m.result.score.toFixed(2)}</span></td><td>${m.result.metrics.meanDistanceKm.toFixed(1)} km</td><td>${m.result.metrics.hd95Km.toFixed(1)} km</td><td>${(m.result.metrics.iou * 100).toFixed(1)}%</td><td><label><input class="toggle" type="checkbox" data-id="${m.id}" ${m.visible ? "checked" : ""} aria-label="${translate("Show", "显示")} ${escapeHTML(m.name)}"> ${translate("Show", "显示")}</label> &nbsp; <button class="remove button outline" data-id="${m.id}" aria-label="${translate("Remove", "移除")} ${escapeHTML(m.name)}">×</button></td></tr>`,
+        `<tr data-id="${m.id}" tabindex="0"><td class="rank">${String(i + 1).padStart(2, "0")}</td><td><div class="model-cell"><span class="model-dot" style="background:${m.color}"></span><strong>${escapeHTML(m.name)}</strong></div></td><td><span class="score">${m.result.score.toFixed(2)}</span></td><td>${vertexStatus(m.result)}</td><td>${m.result.metrics.meanDistanceKm.toFixed(1)} km</td><td>${m.result.metrics.hd95Km.toFixed(1)} km</td><td>${(m.result.metrics.iou * 100).toFixed(1)}%</td><td><label><input class="toggle" type="checkbox" data-id="${m.id}" ${m.visible ? "checked" : ""} aria-label="${translate("Show", "显示")} ${escapeHTML(m.name)}"> ${translate("Show", "显示")}</label> &nbsp; <button class="remove button outline" data-id="${m.id}" aria-label="${translate("Remove", "移除")} ${escapeHTML(m.name)}">×</button></td></tr>`,
     )
     .join("");
   $("#empty").hidden = !!models.length;
@@ -107,7 +113,7 @@ function render() {
   map.draw();
   const selected = models.find((m) => m.id === selectedId);
   $("#score-detail").innerHTML = selected
-    ? `<h3>${escapeHTML(selected.name)} · ${translate("Diagnostics", "详细指标")}</h3><p>${translate("Sampled maximum boundary error", "采样最大边界误差")}: <strong>${selected.result.metrics.maxDistanceKm.toFixed(1)} km</strong> · ${translate("Submitted vertices", "提交顶点数")}: <strong>${selected.data.points.length - 1}</strong> · ${translate("Topology", "拓扑")}: <strong>${translate("valid simple closed ring", "有效的不自交闭合轮廓")}</strong></p>${featureDetails(selected.features)}`
+    ? `<h3>${escapeHTML(selected.name)} · ${translate("Diagnostics", "详细指标")}</h3><p>${translate("Sampled maximum boundary error", "采样最大边界误差")}: <strong>${selected.result.metrics.maxDistanceKm.toFixed(1)} km</strong> · ${translate("Submitted vertices", "提交顶点数")}: ${vertexStatus(selected.result)} · ${translate("Topology", "拓扑")}: <strong>${translate("valid simple closed ring", "有效的不自交闭合轮廓")}</strong></p>${featureDetails(selected.features)}`
     : `<h3>${translate("Selected model details", "所选模型详情")}</h3><p>${translate("Select a model row to inspect its diagnostics.", "选择表格中的模型查看详细指标。")}</p>`;
 }
 function featureDetails(features) {
@@ -336,6 +342,9 @@ $("#export-csv").onclick = async () => {
       "rank",
       "model",
       "score",
+      "vertices",
+      "vertex_limit",
+      "over_vertex_limit",
       "mean_distance_km",
       "hd95_km",
       "max_distance_km",
@@ -350,6 +359,9 @@ $("#export-csv").onclick = async () => {
       i + 1,
       m.name,
       m.result.score,
+      m.result.vertices,
+      m.result.vertexLimit,
+      m.result.overVertexLimit,
       m.result.metrics.meanDistanceKm,
       m.result.metrics.hd95Km,
       m.result.metrics.maxDistanceKm,

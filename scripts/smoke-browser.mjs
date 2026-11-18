@@ -73,10 +73,17 @@ try {
   );
   await page.locator("#add-model").click();
   await page.locator("#rows tr").first().waitFor();
-  assert.match(await page.locator("#score-detail").textContent(), /632/);
+  assert.match(
+    await page.locator("#score-detail").textContent(),
+    /632 \/ 500 · Over limit/,
+  );
   assert.match(
     await page.locator("#score-detail").textContent(),
     /Sampled maximum boundary error/,
+  );
+  assert.match(
+    await page.locator("#rows tr").first().textContent(),
+    /632 \/ 500 · Over limit/,
   );
   await page.locator("#feature-overlay").check();
   assert.equal(await page.locator('[data-feature="reference"]').count(), 34);
@@ -213,6 +220,8 @@ try {
   assert.equal(await page.locator("#rows tr").count(), 2);
   const prompt = await page.locator("#benchmark-prompt").textContent();
   assert.match(prompt, /每行 25 对坐标/);
+  assert.match(prompt, /（中国口径）/);
+  assert.match(await page.locator("#rows tr").first().textContent(), /未超限/);
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.locator("#copy-prompt").click();
   await page.waitForFunction(
