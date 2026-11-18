@@ -42,7 +42,7 @@ export function signedArea(points) {
     area += cross(origin, points[i], points[i + 1]);
   return area / 2;
 }
-export function validateOutline(input, { maxVertices = 500 } = {}) {
+export function validateOutline(input, { maxVertices = CONFIG.maxCandidateVertices } = {}) {
   const errors = [];
   if (!input || typeof input !== "object" || Array.isArray(input))
     return { valid: false, errors: ["Expected a JSON object."] };

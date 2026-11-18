@@ -579,3 +579,81 @@ a {
 .results tbody tr:hover {
   background: #f7faf7;
 }
+
+#app[data-language="en"] .lang-zh,
+#app[data-language="zh"] .lang-en {
+  display: none;
+}
+.topright {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+.languages {
+  display: inline-flex;
+  gap: 0.2rem;
+  margin-left: 0.5rem;
+}
+.languages button {
+  padding: 0.35rem 0.48rem;
+  border: 1px solid #b8cec2;
+  border-radius: 0.3rem;
+  background: #fff;
+  color: #315e51;
+}
+.languages button[aria-pressed="true"] {
+  background: #1e6656;
+  color: #fff;
+  border-color: #1e6656;
+}
+.scope {
+  margin: 0 3.3% 1.2rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid #b8d3c6;
+  border-left: 5px solid #1e6656;
+  border-radius: 6px;
+  background: #eaf4ee;
+  color: #193e32;
+}
+.scope strong {
+  font-size: 1.05rem;
+}
+.scope p {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.prompt-panel {
+  margin: 0 3.3% 2.5rem;
+  padding: clamp(0.9rem, 2vw, 1.45rem);
+}
+.prompt-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+.prompt-top h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.prompt-panel p,
+#copy-status {
+  font-size: 0.85rem;
+  color: #466158;
+  line-height: 1.5;
+}
+#benchmark-prompt {
+  margin: 0.65rem 0 0;
+  padding: 1rem;
+  border: 1px solid #dce5df;
+  border-radius: 5px;
+  background: #f7faf8;
+  font:
+    0.85rem/1.65 ui-monospace,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

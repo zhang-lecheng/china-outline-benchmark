@@ -12,7 +12,7 @@ const el = (name, attrs = {}) => {
   for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
   return n;
 };
-export function createMap(container, reference, getModels) {
+export function createMap(container, reference, getModels, translate) {
   const svg = el("svg", {
     viewBox: "0 0 1000 410",
     role: "img",
@@ -70,7 +70,7 @@ export function createMap(container, reference, getModels) {
         "font-size": "9",
         "font-family": "monospace",
       });
-      t.textContent = lon + "°E";
+      t.textContent = lon + translate("°E", "°东");
       grid.append(t);
     }
     for (let lat = 10; lat <= 60; lat += 10) {
@@ -92,7 +92,7 @@ export function createMap(container, reference, getModels) {
         "font-size": "9",
         "font-family": "monospace",
       });
-      t.textContent = lat + "°N";
+      t.textContent = lat + translate("°N", "°北");
       grid.append(t);
     }
     const activeReference = reference();
@@ -161,7 +161,7 @@ export function createMap(container, reference, getModels) {
         "vector-effect": "non-scaling-stroke",
       });
       const title = el("title");
-      title.textContent = `${model.name} · ${side} · ${sample.distanceKm.toFixed(2)} km`;
+      title.textContent = `${model.name} · ${side === "Reference" ? translate("Reference", "参考边界") : translate("Prediction", "模型预测")} · ${sample.distanceKm.toFixed(2)} km`;
       marker.append(title);
       grid.append(marker);
     }

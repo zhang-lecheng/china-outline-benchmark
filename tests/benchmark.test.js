@@ -99,10 +99,11 @@ test('invalid metadata, unclosed ring, crossing edges and malformed JSON are rej
 });
 
 
-test('the 500-vertex limit is inclusive and 501 vertices are rejected', () => {
+test('accepts outlines over 500 vertices and respects a custom limit', () => {
   const circle = n => close(Array.from({length:n}, (_,i) => { const a=2*Math.PI*i/n; return [105+10*Math.cos(a),35+8*Math.sin(a)]; }));
   assert.equal(validateOutline(feature(circle(500))).valid, true);
-  assert.equal(validateOutline(feature(circle(501))).valid, false);
+  assert.equal(validateOutline(feature(circle(755))).valid, true);
+  assert.equal(validateOutline(feature(circle(501)), { maxVertices: 500 }).valid, false);
 });
 
 test('projected rectangle matches analytic spherical equal-area formula', () => {

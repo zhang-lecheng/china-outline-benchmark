@@ -30,10 +30,11 @@ try {
   const response = await page.goto(url, { waitUntil: "networkidle" });
   assert.equal(response?.status(), 200);
   assert.equal(
-    await page.locator("h1").textContent(),
+    await page.locator("h1").innerText(),
     "China Outline Reconstruction Benchmark",
   );
   await page.locator(".map-wrap svg path").first().waitFor();
+  assert.match(await page.locator(".scope").innerText(), /Mainland China only/);
 
   const fixture = JSON.parse(
     await readFile("examples/fictional-mainland.geojson", "utf8"),
@@ -60,9 +61,19 @@ try {
 
   assert.match(await page.locator("#ref-name").textContent(), /Natural Earth/);
   await page.locator("#model-name").fill("Bundled reference smoke");
-  await page.locator("#candidate-json").fill(JSON.stringify(model));
+  const densePoints = Array.from({ length: 632 }, (_, index) => {
+    const angle = (2 * Math.PI * index) / 632;
+    return [105 + 4 * Math.cos(angle), 34 + 4 * Math.sin(angle)];
+  });
+  await page.locator("#candidate-json").fill(
+    JSON.stringify({
+      ...model,
+      points: [...densePoints, densePoints[0]],
+    }),
+  );
   await page.locator("#add-model").click();
   await page.locator("#rows tr").first().waitFor();
+  assert.match(await page.locator("#score-detail").textContent(), /632/);
   assert.match(
     await page.locator("#score-detail").textContent(),
     /Sampled maximum boundary error/,
@@ -165,9 +176,31 @@ try {
       path: `${process.env.SCREENSHOT_DIR}/benchmark-mobile.png`,
       fullPage: true,
     });
+  await page.locator('[data-language="zh"]').click();
+  assert.equal(await page.locator("h1").innerText(), "中国大陆轮廓重建评测");
+  assert.equal(await page.locator("html").getAttribute("lang"), "zh-CN");
+  assert.match(await page.locator(".scope").innerText(), /仅中国大陆连续陆地/);
+  assert.equal(await page.locator("#rows tr").count(), 2);
+  const prompt = await page.locator("#benchmark-prompt").textContent();
+  assert.match(prompt, /最多输出 500 个不同顶点/);
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.locator("#copy-prompt").click();
+  await page.waitForFunction(
+    () =>
+      document.querySelector("#copy-status").textContent === "已复制到剪贴板。",
+  );
+  assert.equal(
+    await page.evaluate(() => navigator.clipboard.readText()),
+    prompt,
+  );
+  await page.locator('[data-language="en"]').click();
+  assert.match(
+    await page.locator("#benchmark-prompt").textContent(),
+    /at most 500 distinct vertices/,
+  );
   assert.deepEqual(errors, []);
   console.log(
-    `Browser smoke passed at ${url}: file/paste, rejection, ranking, map controls, CSV/JSON, mobile, CLI parity.`,
+    `Browser smoke passed at ${url}: file/paste, rejection, ranking, map controls, CSV/JSON, mobile, CLI parity, 632 vertices, bilingual map scope, prompt copying.`,
   );
 } finally {
   await browser.close();
