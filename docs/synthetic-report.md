@@ -1,6 +1,6 @@
 # Synthetic perturbation report
 
-This is a deterministic check of the scoring implementation, using an invented outline in East Asian coordinate ranges. It is not China, a reference boundary, ground truth, or evidence of geographic accuracy. Scores reflect the configured scales and weights; they are not calibrated human grades. The starting vertex and straight-edge subdivision are tested separately. Run `node examples/perturbation-report.js` to reproduce.
+This is a deterministic check of the scoring implementation, using an invented outline in East Asian coordinate ranges. It exercises algorithm behavior on controlled shapes. Scores reflect the configured scales and weights; they are not calibrated human grades. The starting vertex and straight-edge subdivision are tested separately. Run `node examples/perturbation-report.js` to reproduce.
 
 Case | Score | Mean distance (km) | HD95 (km) | IoU
 --- | ---: | ---: | ---: | ---:
@@ -14,4 +14,4 @@ smooth once | 38.49 | 40.52 | 84.70 | 0.9525
 seeded noise ±0.1° | 88.41 | 3.82 | 8.86 | 0.9950
 seeded noise ±0.2° | 78.70 | 7.61 | 17.58 | 0.9901
 
-The larger translation, scale and seeded-noise changes score below the smaller changes in this example. Local deletion and smoothing reduce the score, but no general ordering between different kinds of perturbation is implied. Distances use a local metric correction to the projected coordinates; HD95 is the 95th percentile of the combined directed boundary samples.
+The larger translation, scale and seeded-noise changes score below the smaller changes in this example. Local deletion and smoothing reduce the score, but no general ordering between different kinds of perturbation is implied. Distances use nearest points on spherical arcs; HD95 is the 95th percentile of the combined directed boundary samples.

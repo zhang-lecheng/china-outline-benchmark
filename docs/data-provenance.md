@@ -19,7 +19,7 @@ python scripts/prepare_reference.py /path/to/ne_10m_admin_0_countries_chn.zip
 python scripts/validate_reference.py
 ```
 
-The preparation script checks the archive hash, chooses the source features by name, bridges the small Macao gap, and writes the single exterior to `data/china-mainland-reference.geojson`. The bundled file is derived data, and its `status` property preserves the approximation warning.
+The preparation script checks the archive hash, chooses the source features by name, bridges the small Macao gap, and writes the single exterior to `data/china-mainland-reference.geojson`. The regenerated file matched the bundled GeoJSON byte for byte (SHA-256 `9a872d354073a33aeb12d3f0f45fb78a753419eec3cb23e5d5dfac5049543073`). The bundled file is derived data, and its `status` property preserves the approximation warning.
 
 ## Using a separately obtained official source locally
 

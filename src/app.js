@@ -12,7 +12,7 @@ app.innerHTML = `<div class="shell"><header class="topbar"><div class="brand"><s
 <div class="layout"><aside class="panel sidebar"><div><div class="section-head"><h2>Submit an outline</h2></div><p class="desc">Add a model’s reconstructed boundary to compare it against the active reference.</p><label class="field-label" for="model-name">Model name</label><input id="model-name" type="text" placeholder="e.g. Model A"><label class="field-label" for="candidate-file">Outline JSON</label><label class="upload">↑ &nbsp; Choose a JSON file<input id="candidate-file" type="file" accept=".json,application/json"></label><div id="candidate-file-name" class="file-name"></div><div class="or">— OR PASTE JSON —</div><textarea id="candidate-json" aria-label="Paste outline JSON" spellcheck="false" placeholder='{"crs":"EPSG:4326", "region":"mainland_china", "orientation":"CCW", "points":[...]}'></textarea><button class="button full" id="add-model">Evaluate &nbsp; →</button><div id="error" class="error" role="alert"></div><p class="small">WGS84 longitude/latitude pairs. Provide one simple, counterclockwise closed ring with 3–500 vertices. Data is evaluated as submitted.</p></div><div class="divider"></div><div><div class="section-head"><h2>Reference boundary</h2></div><div class="reference-status"><span class="dot"></span><div><strong id="ref-name">Approximate reference · Natural Earth</strong><span id="ref-desc">Natural Earth 1:10m Admin 0, China POV 5.1.1. Approximation; not an official 2023 PRC standard map.</span></div></div><label class="upload">↑ &nbsp; Load reference GeoJSON or JSON<input id="reference-file" type="file" accept=".geojson,.json,application/geo+json,application/json"></label><button class="button secondary full" id="demo-button">Use fictional synthetic demo</button><button class="button outline full" id="default-reference">Use Natural Earth reference</button><label class="small"><input type="checkbox" id="reference-visible" checked> Show reference on map</label><p class="small">Import a GeoJSON Polygon or use the outline JSON format. Keep the same reference for all compared models.</p></div></aside>
 <main class="main"><section class="panel map-panel"><div class="map-top"><div><h2>Boundary comparison</h2><p>Drag to pan · Use controls to zoom · Hover for coordinates</p></div><div class="tabs" id="view-mode" aria-label="Map display mode"><button data-mode="overlay" class="active">Overlay</button><button data-mode="difference">Difference</button><button data-mode="boundary">Boundary error</button></div><span class="tag" id="map-tag">APPROXIMATE REFERENCE</span></div><div class="map-wrap"><div class="map-controls"><button data-zoom="in" aria-label="Zoom in">+</button><button data-zoom="out" aria-label="Zoom out">−</button><button data-zoom="reset" aria-label="Reset map view">⌂</button></div></div><div class="map-foot"><div class="legend" id="legend"></div><div class="coords">MOVE OVER MAP FOR COORDINATES</div></div></section>
 <div class="toolbar"><div><h2>Model comparison</h2><p>Sorted by overall score · Higher is better</p></div><div class="actions"><button class="button outline" id="export-csv">↓ &nbsp; Export CSV</button><button class="button outline" id="export-json">↓ &nbsp; Export JSON</button></div></div><section class="panel results"><table><thead><tr><th>Rank</th><th>Model / overlay</th><th>Score / 100</th><th>Mean error</th><th>95th % error</th><th>Area IoU</th><th></th></tr></thead><tbody id="rows"></tbody></table><div class="empty" id="empty">No outlines yet. Add a model to start comparing.</div></section>
-<section class="panel score-detail" id="score-detail"><h3>Selected model details</h3><p>Select a model row to inspect its diagnostics.</p></section><div class="method"><article class="panel"><h3>Reading the map</h3><p>Difference shades the symmetric difference between each visible outline and the reference. Boundary error shows sampled candidate-boundary points sized by distance from the reference; distance statistics appear in the table. Multiple visible differences may overlap.</p></article><article class="panel"><h3>About the score</h3><p>Compares absolute geographic position and shape using symmetric boundary distances and area intersection over union. No alignment or fitting is applied. Scores are meaningful only for the same reference.</p></article></div></main></div></div>`;
+<section class="panel score-detail" id="score-detail"><h3>Selected model details</h3><p>Select a model row to inspect its diagnostics.</p></section><div class="method"><article class="panel"><h3>Reading the map</h3><p>Difference shades the symmetric difference between each visible outline and the reference. Boundary error shows the largest sampled distances along both outlines. Hover over a marker for its distance. Multiple visible differences may overlap.</p></article><article class="panel"><h3>About the score</h3><p>Compares absolute geographic position and shape using symmetric boundary distances and area intersection over union. No alignment or fitting is applied. Scores are meaningful only for the same reference.</p></article></div></main></div></div>`;
 const $ = (s) => document.querySelector(s);
 // Fictional geometry intentionally bears no geographic resemblance to mainland China.
 const demo = {
@@ -71,7 +71,9 @@ function render() {
     .join("");
   $("#empty").hidden = !!models.length;
   $("#legend").innerHTML =
-    `<span class="legend-item"><span class="swatch"></span> Reference</span>` +
+    (referenceVisible
+      ? `<span class="legend-item"><span class="swatch"></span> Reference</span>`
+      : "") +
     models
       .filter((m) => m.visible)
       .map(
@@ -86,7 +88,10 @@ function render() {
     : "<h3>Selected model details</h3><p>Select a model row to inspect its diagnostics.</p>";
 }
 function check(data, isReference = false) {
-  const v = validateOutline(data, isReference ? { maxVertices: CONFIG.maxReferenceVertices } : {});
+  const v = validateOutline(
+    data,
+    isReference ? { maxVertices: CONFIG.maxReferenceVertices } : {},
+  );
   if (!v.valid) throw Error(v.errors.join(" "));
   return data;
 }
@@ -168,7 +173,7 @@ $("#default-reference").onclick = () =>
   setReference(natural, "Approximate reference · Natural Earth");
 $("#reference-visible").onchange = (e) => {
   referenceVisible = e.target.checked;
-  map.draw();
+  render();
 };
 $("#rows").onkeydown = (e) => {
   if ((e.key === "Enter" || e.key === " ") && e.target.matches("tr")) {
