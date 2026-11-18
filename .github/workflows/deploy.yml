@@ -1,0 +1,57 @@
+name: Test and deploy Pages
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Check production site in Chrome
+        run: |
+          if command -v google-chrome > /dev/null; then
+            CHROMIUM_PATH="$(command -v google-chrome)" npm run test:browser
+          else
+            npx playwright-core install --with-deps --only-shell chromium
+            npm run test:browser
+          fi
+      - name: Package Pages
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Verify public response
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: curl -fsSL --retry 8 --retry-all-errors --retry-delay 5 "$PAGE_URL" | rg -q 'China Outline Reconstruction Benchmark'
