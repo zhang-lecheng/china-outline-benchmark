@@ -103,7 +103,9 @@ try {
   await page.locator("#add-model").click();
   await page.locator("#rows tr").first().waitFor();
   await page.locator("#model-name").fill("Identity");
-  await page.locator("#candidate-json").fill(JSON.stringify(model));
+  await page.locator("#candidate-json").fill(
+    "M " + points.slice(0, -1).map(([lon, lat]) => `${lon},${-lat}`).join(" ") + "\nZ",
+  );
   await page.locator("#add-model").click();
   await page.waitForFunction(
     () => document.querySelectorAll("#rows tr").length === 2,
@@ -182,7 +184,7 @@ try {
   assert.match(await page.locator(".scope").innerText(), /仅中国大陆连续陆地/);
   assert.equal(await page.locator("#rows tr").count(), 2);
   const prompt = await page.locator("#benchmark-prompt").textContent();
-  assert.match(prompt, /最多输出 500 个不同顶点/);
+  assert.match(prompt, /每行 25 对坐标/);
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.locator("#copy-prompt").click();
   await page.waitForFunction(
@@ -196,7 +198,7 @@ try {
   await page.locator('[data-language="en"]').click();
   assert.match(
     await page.locator("#benchmark-prompt").textContent(),
-    /at most 500 distinct vertices/,
+    /25 space-separated coordinate pairs per line/,
   );
   assert.deepEqual(errors, []);
   console.log(

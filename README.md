@@ -8,13 +8,22 @@ A browser and command-line tool for comparing mainland outlines reconstructed by
 
 ## Evaluate outlines
 
-The website has [English](https://zhang-lecheng.github.io/china-outline-benchmark/) and [简体中文](https://zhang-lecheng.github.io/china-outline-benchmark/?lang=zh) interfaces. The bottom of the page offers a one-click copy of the [reconstructed Chinese prompt](docs/benchmark-prompt-zh.md) or its [English translation](docs/benchmark-prompt-en.md).
+The website has [English](https://zhang-lecheng.github.io/china-outline-benchmark/) and [简体中文](https://zhang-lecheng.github.io/china-outline-benchmark/?lang=zh) interfaces. The bottom of the page offers a one-click copy of the [Chinese benchmark prompt](docs/benchmark-prompt-zh.md) or its [English translation](docs/benchmark-prompt-en.md).
 
 1. Open the benchmark and choose the reference. Use the same reference for every prediction in a comparison.
-2. Enter the model name, then upload a JSON file or paste its contents. Select **Evaluate** and repeat for each model.
+2. Enter the model name, then upload a path text file or a JSON file, or paste the outline. Select **Evaluate** and repeat for each model.
 3. Select a row to inspect metrics. Use **Overlay**, **Difference** or **Boundary error** to examine the shape and location of discrepancies. Export CSV or JSON to keep the reference fingerprint and scores together.
 
-Model names are display labels. Keep rejected submissions in your experimental record and report the pass rate separately. The historical task prompt asks models for at most 500 distinct vertices. The evaluator accepts longer simple rings up to a 20,000-vertex processing limit. Compare submission lengths alongside scores when evaluating adherence to the original task. The repository examples and perturbation report are synthetic.
+Model names are display labels. Keep rejected submissions in your experimental record and report the pass rate separately. The task prompt asks models for at most 20 lines of 25 distinct vertices. The evaluator accepts longer simple rings up to a 20,000-vertex processing limit. Compare submission lengths alongside scores when evaluating adherence to the original task. The repository examples and perturbation report are synthetic.
+
+### SVG-style input
+
+Paste a single absolute linear path using WGS84 longitude and **negative** latitude. One coordinate pair follows another, separated by whitespace. End with `Z` for closure. The evaluator also accepts this format from a `.txt` file. This square illustrates the syntax:
+
+```text
+M 100,-30 101,-30 101,-31 100,-31
+Z
+```
 
 ### Input JSON
 

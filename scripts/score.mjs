@@ -1,3 +1,4 @@
+import { parseCandidate } from "../src/parse-candidate.js";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { parseArgs } from "node:util";
@@ -6,7 +7,7 @@ import { CONFIG } from "../src/config.js";
 import { validateOutline } from "../src/geometry.js";
 import { scoreOutlines } from "../src/score.js";
 
-const help = `Usage: npm run score -- --reference FILE [--format json|csv] [--label NAME ...] PREDICTION.json [...]
+const help = `Usage: npm run score -- --reference FILE [--format json|csv] [--label NAME ...] PREDICTION [...]
 Specify one label per prediction or omit labels to use filenames. At least one rejected input exits with status 2 while still exporting every result.`;
 
 async function main() {
@@ -41,7 +42,7 @@ async function main() {
   for (const [index, path] of positionals.entries()) {
     const label = values.label?.[index] ?? basename(path, ".json");
     try {
-      const candidate = JSON.parse(await readFile(path, "utf8"));
+      const candidate = parseCandidate(await readFile(path, "utf8"));
       const { score, metrics } = scoreOutlines(candidate, reference);
       results.push({
         label,
