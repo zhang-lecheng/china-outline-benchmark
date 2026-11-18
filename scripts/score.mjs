@@ -1,3 +1,4 @@
+import { scoreFeatures } from "../src/score-features.js";
 import { parseCandidate } from "../src/parse-candidate.js";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
@@ -9,6 +10,25 @@ import { scoreOutlines } from "../src/score.js";
 
 const help = `Usage: npm run score -- --reference FILE [--format json|csv] [--label NAME ...] PREDICTION [...]
 Specify one label per prediction or omit labels to use filenames. At least one rejected input exits with status 2 while still exporting every result.`;
+
+function featureMetrics(candidate, format) {
+  const result = scoreFeatures(candidate);
+  if (!result) return {};
+  if (format === "json") return { features: result };
+  return {
+    featureReferenceVersion: result.referenceVersion,
+    citiesMatched: result.cities.matched,
+    cityMeanKm: result.cities.meanKm,
+    ...Object.fromEntries(
+      Object.entries(result.rivers).flatMap(([name, metrics]) =>
+        Object.entries(metrics).map(([key, value]) => [
+          name + "_" + key,
+          value,
+        ]),
+      ),
+    ),
+  };
+}
 
 async function main() {
   const { values, positionals } = parseArgs({
@@ -48,6 +68,7 @@ async function main() {
         label,
         valid: true,
         vertices: candidate.points.length - 1,
+        ...featureMetrics(candidate, values.format),
         score,
         ...metrics,
       });

@@ -12,7 +12,13 @@ const el = (name, attrs = {}) => {
   for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
   return n;
 };
-export function createMap(container, reference, getModels, translate) {
+export function createMap(
+  container,
+  reference,
+  getModels,
+  translate,
+  getFeatures,
+) {
   const svg = el("svg", {
     viewBox: "0 0 1000 410",
     role: "img",
@@ -30,14 +36,14 @@ export function createMap(container, reference, getModels, translate) {
   function projection([lon, lat]) {
     return [500 + (lon - 104) * scale, 205 - (lat - 35) * scale];
   }
-  function path(points) {
+  function path(points, closed = true) {
     return (
       points
         .map((point, index) => {
           const [x, y] = projection(point);
           return `${index ? "L" : "M"}${x.toFixed(5)},${y.toFixed(5)}`;
         })
-        .join(" ") + " Z"
+        .join(" ") + (closed ? " Z" : "")
     );
   }
   function moveGrid() {
@@ -109,6 +115,9 @@ export function createMap(container, reference, getModels, translate) {
         }),
       );
     }
+    const featureReference = getFeatures();
+    if (featureReference)
+      drawFeatures(featureReference, "#256489", "reference");
     for (const model of getModels().filter((item) => item.visible)) {
       const predictedPath = path(model.data.points);
       if (mode === "difference" && referencePath) {
@@ -132,11 +141,49 @@ export function createMap(container, reference, getModels, translate) {
           "vector-effect": "non-scaling-stroke",
         }),
       );
+      if (featureReference && mode === "overlay")
+        drawFeatures(model.data, model.color, "candidate");
       if (mode === "boundary") {
         const { candidateErrors, referenceErrors } = model.result.geometry;
         drawErrors(model, candidateErrors, "Prediction");
         if (referencePath) drawErrors(model, referenceErrors, "Reference");
       }
+    }
+  }
+  function drawFeatures(data, color, kind) {
+    for (const [name, points] of Object.entries(data.rivers ?? {})) {
+      const river = el("path", {
+        d: path(points, false),
+        fill: "none",
+        stroke: color,
+        "stroke-width": 2,
+        "stroke-dasharray": kind === "candidate" ? "4 3" : "none",
+        "vector-effect": "non-scaling-stroke",
+        "data-feature": kind,
+      });
+      const title = el("title");
+      title.textContent =
+        name === "YANGTZE"
+          ? translate("Yangtze", "长江")
+          : translate("Yellow River", "黄河");
+      river.append(title);
+      grid.append(river);
+    }
+    for (const city of data.cities ?? []) {
+      const [cx, cy] = projection(city.point);
+      const marker = el("circle", {
+        cx,
+        cy,
+        r: 2.6,
+        fill: color,
+        stroke: "white",
+        "stroke-width": 0.7,
+        "data-feature": kind,
+      });
+      const title = el("title");
+      title.textContent = city.city;
+      marker.append(title);
+      grid.append(marker);
     }
   }
   function drawErrors(model, samples, side) {

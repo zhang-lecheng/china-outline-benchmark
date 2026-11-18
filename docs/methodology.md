@@ -37,3 +37,7 @@ Boundary features below the reference's effective resolution, sampling spacing o
 ## Checks
 
 Use `npm test` and `node examples/perturbation-report.js` to reproduce the automated and synthetic checks. The browser smoke compares its export with the CLI using an absolute score tolerance of `1e-8` and checks input upload, map interactions, downloads and a mobile viewport.
+
+## Rivers and cities
+
+The four-section submission adds optional diagnostics. The outline keeps its original formula. River errors compare the open source-to-mouth centerlines. We report the symmetric mean, HD95 and errors at the two ordered endpoints, in kilometers. Each direction contributes 2,048 equally spaced samples by spherical arc length. City diagnostics match by administrative region and expected city name, then report great-circle distance and coverage. Missing and wrong-city rows are excluded from the mean and listed separately. JSON exports include the feature reference version and city-level details.

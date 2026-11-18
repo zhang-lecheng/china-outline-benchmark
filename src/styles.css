@@ -657,3 +657,10 @@ a {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.feature-toggle {
+  display: block;
+  padding: .65rem 1rem 0;
+  font-size: .8rem;
+  color: #315e51;
+}

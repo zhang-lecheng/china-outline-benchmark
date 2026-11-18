@@ -78,6 +78,9 @@ try {
     await page.locator("#score-detail").textContent(),
     /Sampled maximum boundary error/,
   );
+  await page.locator("#feature-overlay").check();
+  assert.equal(await page.locator('[data-feature="reference"]').count(), 34);
+  await page.locator("#feature-overlay").uncheck();
   await page.locator(".remove").click();
 
   await page
@@ -104,7 +107,12 @@ try {
   await page.locator("#rows tr").first().waitFor();
   await page.locator("#model-name").fill("Identity");
   await page.locator("#candidate-json").fill(
-    "M " + points.slice(0, -1).map(([lon, lat]) => `${lon},${-lat}`).join(" ") + "\nZ",
+    "M " +
+      points
+        .slice(0, -1)
+        .map(([lon, lat]) => `${lon},${-lat}`)
+        .join(" ") +
+      "\nZ",
   );
   await page.locator("#add-model").click();
   await page.waitForFunction(
@@ -123,6 +131,26 @@ try {
   assert.match(await page.locator(".coords").textContent(), /°/);
   await page.locator(".toggle").first().uncheck();
   await page.locator(".toggle").first().check();
+
+  await page.locator("#model-name").fill("Feature submission");
+  await page.locator("#candidate-json").fill(
+    "OUTLINE\nM " +
+      points
+        .slice(0, -1)
+        .map(([lon, lat]) => `${lon},${-lat}`)
+        .join(" ") +
+      " Z\nYANGTZE\nM 91,-34 107,-30 122,-31\nYELLOW\nM 96,-35 110,-38 119,-38\nCITIES\n北京 北京 116.4,-39.9",
+  );
+  await page.locator("#add-model").click();
+  assert.match(
+    await page.locator("#score-detail").textContent(),
+    /Cities matched 1\/32/,
+  );
+  assert.match(
+    await page.locator("#score-detail").textContent(),
+    /Yangtze.*Yellow River/s,
+  );
+  await page.getByRole("button", { name: "Remove Feature submission" }).click();
 
   const jsonPromise = page.waitForEvent("download");
   await page.locator("#export-json").click();

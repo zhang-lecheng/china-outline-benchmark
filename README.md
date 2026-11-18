@@ -75,3 +75,7 @@ See [methodology](docs/methodology.md), [fixed configuration](src/config.js) and
 Run `npx playwright-core install chromium` once and use `npm run test:browser` after building. Set `CHROMIUM_PATH` to use a system Chromium or `BENCHMARK_URL` to test the live site. GitHub Actions runs unit tests, builds the site, and exercises the production build under a project subpath before deploying the default branch. To deploy a fork, set **Settings → Pages → Source → GitHub Actions**.
 
 Code is MIT-licensed. Data licensing is documented separately in [data provenance](docs/data-provenance.md).
+
+### Rivers and provincial-level centers
+
+Paste a four-section answer from the current benchmark prompt, or save it as a text file for the CLI. River mean error, HD95, source and mouth error, city coverage, and matched-city mean distance appear alongside the outline results. The outline score uses its existing formula. Use the map's river and city checkbox to see the references and submitted layers. See [source downloads and reproduction](docs/data-provenance.md#rivers-and-provincial-level-centers).
