@@ -11,6 +11,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      bundle: ${{ steps.bundle.outputs.file }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -20,6 +22,12 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Identify the production bundle
+        id: bundle
+        run: |
+          bundle="$(basename "$(find dist/assets -name 'index-*.js' -print -quit)")"
+          test -n "$bundle"
+          echo "file=$bundle" >> "$GITHUB_OUTPUT"
       - name: Check production site in Chrome
         run: |
           if command -v google-chrome > /dev/null; then
@@ -39,6 +47,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pages: write
       id-token: write
     concurrency:
@@ -54,4 +63,30 @@ jobs:
       - name: Verify public response
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
-        run: curl -fsSL --retry 8 --retry-all-errors --retry-delay 5 "$PAGE_URL" | rg -q 'China Outline Reconstruction Benchmark'
+          BUNDLE: ${{ needs.build.outputs.bundle }}
+        run: |
+          for attempt in {1..12}; do
+            if curl -fsSL --max-time 10 "$PAGE_URL" -o landing.html &&
+               grep -Fq "$BUNDLE" landing.html; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "The published bundle did not match this build"
+          exit 1
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Verify uploads and scoring on public Pages
+        env:
+          BENCHMARK_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          if command -v google-chrome > /dev/null; then
+            CHROMIUM_PATH="$(command -v google-chrome)" npm run test:browser
+          else
+            npx playwright-core install --with-deps --only-shell chromium
+            npm run test:browser
+          fi
